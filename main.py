@@ -45,7 +45,7 @@ ohw_data = ohw(names_data)
 st.title('Social Security National Names App')
 
 with st.sidebar:
-    name_input = st.text_input('Enter a name:', 'Mary')
+    name_input = st.text_input('Enter a name:', 'Katherine')
     year_input = st.slider('Select a year', min_value=1880, max_value=2023, value=2001)
     n_names = st.radio('Number of names per sex', [3, 5, 10])
     st.download_button(
