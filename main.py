@@ -42,7 +42,7 @@ names_data = load_name_data()
 names_csv = names_data.to_csv(index=False).encode('utf-8')
 ohw_data = ohw(names_data)
 
-st.title('Social Security Administration National Names App')
+st.title('Social Security National Names App')
 
 with st.sidebar:
     name_input = st.text_input('Enter a name:', 'Katherine')
