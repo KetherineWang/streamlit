@@ -1,8 +1,9 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import matplotlib.pyplot as plt
-import pandas as pd
 
 def top_names_plot(df, year=2000, n=10, width=800, height=600, variable='count'):
     year_data = df[df['year'] == year].copy()
@@ -20,11 +21,11 @@ def top_names_plot(df, year=2000, n=10, width=800, height=600, variable='count')
     df.sort_values(variable, ascending=False, inplace=True)
 
     fig = px.bar(df, x='name', y=variable, color='sex',
-                category_orders={"name": df['name'].tolist()},
-                hover_data={'sex_rank': True, 'overall_rank': True, 'sex': False, 'name': False})  # Add custom hover data
+                 category_orders={'name': df['name'].tolist()},
+                 hover_data={'sex_rank': True, 'overall_rank': True, 'sex': False, 'name': False})  # Add custom hover data
 
-    fig.update_layout(title=f'Top {n} by sex names in {year}',
-                    width=width, height=height)  
+    fig.update_layout(title=f'Top "{n}" Names in "{year}"',
+                      width=width, height=height)  
     return fig  
 
 
@@ -169,18 +170,17 @@ def unique_names_summary(df, year=1977):
     percent_unique_names_per_sex = (unique_names_per_sex / total_names_per_sex) * 100
 
     output = pd.DataFrame({
-        "Total Names": total_names_per_sex,
-        "Unique Names": unique_names_per_sex,
-        "Percent Unique": percent_unique_names_per_sex})
+        "total names": total_names_per_sex,
+        "unique names": unique_names_per_sex,
+        "percent unique": percent_unique_names_per_sex})
     
     return output
 
 def one_hit_wonders(ohw_data, year=1977):
-    
-    ohw_year = ohw_data[ohw_data['year']==year]
+    ohw_year = ohw_data[ohw_data['year']==year].copy()
 
     if ohw_year.empty:
-        print(f"No one-hit wonders found in {year}")
+        st.write(f"No one-hit wonders found in {year}")
     else:
         one_hit_wonder_counts = ohw_year['sex'].value_counts()
         common_one_hit_wonders = ohw_year.groupby(['name', 'sex'])['count'].sum().reset_index()
@@ -189,11 +189,10 @@ def one_hit_wonders(ohw_data, year=1977):
             most_common_female = common_one_hit_wonders[common_one_hit_wonders['sex'] == 'F'].sort_values(by='count', ascending=False).iloc[0]
             most_common_male = common_one_hit_wonders[common_one_hit_wonders['sex'] == 'M'].sort_values(by='count', ascending=False).iloc[0]
 
-            print(f"Summary of One-Hit Wonders in {year}:")
-            print(f"Number of female one-hit wonders: {one_hit_wonder_counts.get('F', 0)}")
-            print(f"Number of male one-hit wonders: {one_hit_wonder_counts.get('M', 0)}")
+            st.write(f"Number of female one-hit wonders: {one_hit_wonder_counts.get('F', 0)}")
+            st.write(f"Number of male one-hit wonders: {one_hit_wonder_counts.get('M', 0)}")
 
-            print(f"Most common female one-hit wonder: {most_common_female['name']} with {most_common_female['count']} occurrences")
-            print(f"Most common male one-hit wonder: {most_common_male['name']} with {most_common_male['count']} occurrences")
+            st.write(f"Most common female one-hit wonder: {most_common_female['name']} with {most_common_female['count']} occurrences")
+            st.write(f"Most common male one-hit wonder: {most_common_male['name']} with {most_common_male['count']} occurrences")
         except:
-            print(f"Not enough data to calculate one-hit wonders by sex in {year}")
+            st.write(f"Not enough data to calculate one-hit wonders by sex in {year}")

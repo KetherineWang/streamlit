@@ -1,31 +1,35 @@
 import numpy as np
 import pandas as pd
-import zipfile
-import plotly.express as px
 import matplotlib.pyplot as plt
 import requests
-from io import BytesIO
+import zipfile
+import streamlit as st
+import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from io import BytesIO
 from my_plots import *
-import streamlit as st
 
 @st.cache_data
 def load_name_data():
-    names_file = 'https://www.ssa.gov/oact/babynames/names.zip'
-    response = requests.get(names_file)
-    with zipfile.ZipFile(BytesIO(response.content)) as z:
+    names_files_url = 'https://www.ssa.gov/oact/babynames/names.zip'
+    names_response = requests.get(names_files_url)
+    with zipfile.ZipFile(BytesIO(names_response.content)) as names_files:
         dfs = []
-        files = [file for file in z.namelist() if file.endswith('.txt')]
+        files = [file for file in names_files.namelist() if file.endswith('.txt')]
+
         for file in files:
-            with z.open(file) as f:
+            with names_files.open(file) as f:
                 df = pd.read_csv(f, header=None)
                 df.columns = ['name','sex','count']
                 df['year'] = int(file[3:7])
                 dfs.append(df)
-        data = pd.concat(dfs, ignore_index=True)
-    data['pct'] = data['count'] / data.groupby(['year', 'sex'])['count'].transform('sum')
-    return data
+
+        names_data = pd.concat(dfs, ignore_index=True)
+
+    names_data['pct'] = names_data['count'] / names_data.groupby(['year', 'sex'])['count'].transform('sum')
+    
+    return names_data
 
 @st.cache_data
 def ohw(df):
@@ -34,29 +38,42 @@ def ohw(df):
     one_hit_wonder_data = df.set_index(['name', 'sex']).loc[one_hit_wonders].reset_index()
     return one_hit_wonder_data
 
-data = load_name_data()
-ohw_data = ohw(data)
+names_data = load_name_data()
+names_csv = names_data.to_csv(index=False).encode('utf-8')
+ohw_data = ohw(names_data)
 
-st.title('My Cool Name App')
+st.title('Social Security National Names App')
 
 with st.sidebar:
-    input_name = st.text_input('Enter a name:', 'Mary')
-    year_input = st.slider('Year', min_value=1800, max_value=2023, value=2000)
+    name_input = st.text_input('Enter a name:', 'Mary')
+    year_input = st.slider('Select a year', min_value=1880, max_value=2023, value=2001)
     n_names = st.radio('Number of names per sex', [3, 5, 10])
+    st.download_button(
+        label='Download data as CSV',
+        data=names_csv,
+        file_name='social_security_national_names.csv',
+        mime='text/csv'
+    )
 
-tab1, tab2 = st.tabs(['Names', 'Year'])
+tab1, tab2, tab3, tab4 = st.tabs(['Name Trends by Gender', 'Top Names by Year', 'Unique Names Summary', 'One-Hit Wonders Summary'])
 
 with tab1:
     # input_name = st.text_input('Enter a name:', 'Mary')
-    name_data = data[data['name']==input_name].copy()
-    fig = px.line(name_data, x='year', y='count', color='sex')
-    st.plotly_chart(fig)
+    name_data = names_data[names_data['name']==name_input].copy()
+    name_plot = px.line(name_data, x='year', y='count', color='sex')
+    name_plot.update_layout(title=f'"{name_input}" Trends by Gender')
+    st.plotly_chart(name_plot)
 
 with tab2:
-    # year_input = st.slider('Year', min_value=1800, max_value=2023, value=2000)
-    fig2 = top_names_plot(data, year=year_input, n=n_names)
-    st.plotly_chart(fig2)
+    # year_input = st.slider('Year', min_value=1880, max_value=2023, value=2001)
+    year_plot = top_names_plot(names_data, year=year_input, n=n_names)
+    st.plotly_chart(year_plot)
 
-    st.write('Unique Names Table')
-    output_table = unique_names_summary(data, 2000)
+with tab3:
+    st.write(f'Unique Names Summary Table in "{year_input}"')
+    output_table = unique_names_summary(names_data, year=year_input)
     st.data_editor(output_table)
+
+with tab4:
+    st.write(f'One-Hit Wonders Summary Statistics in "{year_input}"')
+    one_hit_wonders(ohw_data, year=year_input)
